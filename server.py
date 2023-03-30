@@ -8,7 +8,7 @@ import inspect
 import shutil
 from string import Template
 from subprocess import call
-from version import version
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -48,10 +48,8 @@ ssl_key_path = certs_path + hostname + '.key'
 ssl_server_key_crt_path = certs_path + '/server.pem'
 config_out_path = certs_path + hostname + '.cnf'
 
-if PY3:
-    OpenSslExecutableNotFoundError = FileNotFoundError
-else:
-    OpenSslExecutableNotFoundError = OSError
+OpenSslExecutableNotFoundError = FileNotFoundError
+
 
 def create_ssl_config_file() :
     template_path = user_desktop_path + '/openssl-template.cnf'
@@ -68,13 +66,12 @@ def create_ssl_config_file() :
 
 def create_ssl_cert():
     
-    if PY3:
-        from subprocess import DEVNULL
-    else:
-        DEVNULL = open(os.devnull, 'wb')
+   
+    from subprocess import DEVNULL
+
 
     try:
-        ssl_exec_list = ['C:/OpenSSL-Win32/bin/openssl', 'req', '-new', '-x509','-newkey', 'rsa:2048', '-keyout', ssl_key_path,
+        ssl_exec_list = ['C:/OpenSSL-Win64/bin/openssl', 'req', '-new', '-x509','-newkey', 'rsa:2048', '-keyout', ssl_key_path,
                          '-out', ssl_cert_path, '-days', '365', '-nodes', '-config', config_out_path]
         call(ssl_exec_list, stdout=DEVNULL, stderr=DEVNULL)
     except OpenSslExecutableNotFoundError:
@@ -96,28 +93,19 @@ def exit_handler():
 
 
 def main():
-    logging.info('pyhttps {}'.format(version))
+    logging.info('pyhttps {}')
     create_ssl_config_file()
     create_ssl_cert()
     merge_cert_and_privatekey_to_server_pem()
     atexit.register(exit_handler)
 
-    if PY3:
-        import http.server
-        import socketserver
-        import ssl
+    import http.server
+    import socketserver
+    import ssl
 
-        logging.info('Server running... https://{}:{}'.format(server_host, server_port))
-        httpd = socketserver.TCPServer((server_host, server_port), http.server.SimpleHTTPRequestHandler)
-        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_server_key_crt_path, server_side=True)
-    else:
-        import BaseHTTPServer
-        import SimpleHTTPServer
-        import ssl
-
-        logging.info('Server running... https://{}:{}'.format(server_host, server_port))
-        httpd = BaseHTTPServer.HTTPServer((server_host, server_port), SimpleHTTPServer.SimpleHTTPRequestHandler)
-        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_server_key_crt_path, server_side=True)
+    logging.info('Server running... https://{}:{}'.format(server_host, server_port))
+    httpd = socketserver.TCPServer((server_host, server_port), http.server.SimpleHTTPRequestHandler)
+    httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_server_key_crt_path, server_side=True)
 
     httpd.serve_forever()
     
